@@ -54,12 +54,14 @@ final public class VWLearners {
      * @return A VW Learner
      */
     public static <T extends VWLearner> T clone(final T seedLearner) {
-        long nativePointer = seedVWModel(seedLearner.getNativePointer());
-        T learner = getLearner(nativePointer);
+        T learner = null;
+        synchronized(seedLearner){
+            long nativePointer = seedVWModel(seedLearner.getNativePointer());
+            learner = getLearner(nativePointer);
+        }
         if(learner == null) {
             throw new IllegalArgumentException("Unknown VW return type.");
         }
-        
         return learner;
     }
     
