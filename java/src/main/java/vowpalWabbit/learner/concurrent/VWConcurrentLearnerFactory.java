@@ -1,9 +1,5 @@
 package vowpalWabbit.learner.concurrent;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -158,43 +154,12 @@ public class VWConcurrentLearnerFactory {
     private static <P extends VWLearner> LinkedBlockingQueue<P> createVWPredictorPool(
             final ExecutorService learnerExecutor, final int poolSize,
             final String command) throws InterruptedException {
-        final CompletionService<P> cs = new ExecutorCompletionService<P>(
-                learnerExecutor);
-
-        final LinkedBlockingQueue<P> vwPredictorPool = new LinkedBlockingQueue<P>(
-                poolSize);
-
+        final LinkedBlockingQueue<P> vwPredictorPool = new LinkedBlockingQueue<P>(poolSize);
         final P seedLearner = VWLearners.create(command);
-
-        // we want to do initialization in parallel as depending on the model
-        // size, this could take some time.
         for (int i = 1; i < poolSize; i++) {
-            cs.submit(new Callable<P>() {
-
-                @Override
-                public P call() throws Exception {
-                    synchronized(seedLearner) {
-                        return VWLearners.clone(seedLearner);
-                    }
-                }
-
-            });
+            vwPredictorPool.add(VWLearners.clone(seedLearner));
         }
-
-        // This loop makes sure we block until learners are initialized in each
-        // of the threads.
         vwPredictorPool.add(seedLearner);
-        for (int i = 1; i < poolSize; i++) {
-            try {
-                vwPredictorPool.add(cs.take().get());
-            } catch (ExecutionException e) {
-                throw new RuntimeException(String.format(
-                        "Unable to load concurrent learners using "
-                                + "command: %s, numThreads: %d",
-                        command, poolSize), e);
-            }
-        }
-
         return vwPredictorPool;
     }
 }
