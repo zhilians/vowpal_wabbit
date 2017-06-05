@@ -169,16 +169,16 @@ public class VWConcurrentLearnerFactory {
         // we want to do initialization in parallel as depending on the model
         // size, this could take some time.
         for (int i = 1; i < poolSize; i++) {
-            synchronized(seedLearner) {
-                cs.submit(new Callable<P>() {
+            cs.submit(new Callable<P>() {
 
-                    @Override
-                    public P call() throws Exception {
+                @Override
+                public P call() throws Exception {
+                    synchronized(seedLearner) {
                         return VWLearners.clone(seedLearner);
                     }
+                }
 
-                });
-            }
+            });
         }
 
         // This loop makes sure we block until learners are initialized in each
